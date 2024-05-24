@@ -22,12 +22,9 @@ echo ""
 read -p "Sender Address: " EMAIL_FROM
 read -p "TO: " EMAIL_TO
 
-# Generate AES key and IV
-AES_KEY=$(openssl rand -base64 32)
-AES_IV=$(openssl rand -base64 16)
-
-# Encrypt the SMTP password using AES
-ENCRYPTED_PASS=$(echo -n $SMTP_PASS | openssl enc -aes-256-cbc -base64 -K $(echo -n $AES_KEY | xxd -p -c 256) -iv $(echo -n $AES_IV | xxd -p -c 256))
+# Store the SMTP password in a file securely
+echo $SMTP_PASS > /usr/local/bin/pcb_smtp_pass.txt
+chmod 600 /usr/local/bin/pcb_smtp_pass.txt
 
 HOSTNAME=$(hostname)
 
@@ -42,9 +39,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-import base64
 
 # SMTP Config
 SMTP_SERVER = '$SMTP_SERVER'
@@ -63,21 +57,9 @@ def log_message(message):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.datetime.now()} - {message}\n")
 
-def decrypt_password(encrypted_pass, key, iv):
-    encrypted_pass = base64.b64decode(encrypted_pass)
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
-    decryptor = cipher.decryptor()
-    decrypted_pass = decryptor.update(encrypted_pass) + decryptor.finalize()
-    return decrypted_pass.decode('utf-8').rstrip('\0')
-
-# AES key and IV (hex encoded)
-AES_KEY = bytes.fromhex('$AES_KEY')
-AES_IV = bytes.fromhex('$AES_IV')
-
-# Encrypted password
-ENCRYPTED_PASS = '$ENCRYPTED_PASS'
-
-SMTP_PASS = decrypt_password(ENCRYPTED_PASS, AES_KEY, AES_IV)
+# Read the SMTP password from the file
+with open('/usr/local/bin/pcb_smtp_pass.txt', 'r') as pass_file:
+    SMTP_PASS = pass_file.read().strip()
 
 def send_email(subject, body, attachment_path=None):
     msg = MIMEMultipart()
@@ -148,9 +130,6 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-
-mv pcb-private.pem /usr/local/bin/
-mv pcb-public.pem /usr/local/bin/
 
 systemctl daemon-reload
 systemctl start pcb-backup.service
