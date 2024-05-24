@@ -40,4 +40,4 @@ You can manage the service and timer using the following commands:
 <code>sudo systemctl disable pcb-backup.timer</code>
 
 ### Log Files
-Logs related to the email sending and backup processes will be saved in /var/log/pcb/backup.log. This log file will contain detailed information about errors and successful operations.
+Logs related to the email sending and backup processes will be saved in /var/log/pcb/pcb.log This log file will contain detailed information about errors and successful operations.
