@@ -6,9 +6,9 @@ Privia Security, Proxmox Config Backup-PCB v1.0 is a script designed to back up 
 
 ## Installation
 
-1. Clone this repository to your local machine or download the `setup.sh` file.
+1. `wget https://raw.githubusercontent.com/mindspoof/PCB/main/setup_pcb_service.sh -O /tmp/setup_pcb_service.sh`
 2. Make the `chmod +x setup.sh` file executable:
-3. sudo ./setup.sh
+3. sudo `./setup.sh`
 4. When the script runs, it will prompt you for the following information:
    + `SMTP Server`
    + `SMTP Port`
