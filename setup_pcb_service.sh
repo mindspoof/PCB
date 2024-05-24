@@ -18,6 +18,7 @@ read -p "SMTP Server: " SMTP_SERVER
 read -p "SMTP Port: " SMTP_PORT
 read -p "SMTP User: " SMTP_USER
 read -s -p "SMTP Password: " SMTP_PASS
+echo ""
 read -p "Sender Address: " EMAIL_FROM
 read -p "TO: " EMAIL_TO
 
@@ -50,7 +51,7 @@ SMTP_PORT = $SMTP_PORT
 SMTP_USER = '$SMTP_USER'
 EMAIL_FROM = '$EMAIL_FROM'
 EMAIL_TO = '$EMAIL_TO'
-EMAIL_SUBJECT = '$HOSTNAME-Proxmox-Config-Backup'
+EMAIL_SUBJECT = '${HOSTNAME}-Proxmox-Config-Backup'
 
 LOG_DIR = '/var/log/pcb/'
 if not os.path.exists(LOG_DIR):
@@ -120,7 +121,7 @@ except Exception as e:
     error_message = f"Backup failed: {str(e)}"
     log_message(error_message)
     log_message(traceback.format_exc())
-    print(f"\033[91m✘ {error_message}\033[0m")
+    print(f"\\033[91m✘ {error_message}\\033[0m")
     raise
 EOF
 
