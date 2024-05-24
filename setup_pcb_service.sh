@@ -26,6 +26,8 @@ openssl rsa -in pcb-private.pem -outform PEM -pubout -out pcb-public.pem
 
 ENCRYPTED_PASS=$(echo -n $SMTP_PASS | openssl rsautl -encrypt -pubin -inkey pcb-public.pem | base64)
 
+HOSTNAME=$(hostname)
+
 cat << EOF > /usr/local/bin/send_pve_files.py
 import os
 import smtplib
@@ -39,7 +41,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import base64
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
 # SMTP Config
@@ -48,7 +50,7 @@ SMTP_PORT = $SMTP_PORT
 SMTP_USER = '$SMTP_USER'
 EMAIL_FROM = '$EMAIL_FROM'
 EMAIL_TO = '$EMAIL_TO'
-EMAIL_SUBJECT = 'NODE-01.10.10.10.11_Proxmox-Config-Backup'
+EMAIL_SUBJECT = '$HOSTNAME-Proxmox-Config-Backup'
 
 LOG_DIR = '/var/log/pcb/'
 if not os.path.exists(LOG_DIR):
@@ -149,6 +151,9 @@ mv pcb-private.pem /usr/local/bin/
 mv pcb-public.pem /usr/local/bin/
 
 systemctl daemon-reload
+systemctl start pcb-backup.service
+systemctl start pcb-backup.timer
+
 if systemctl enable pcb-backup.service && systemctl enable --now pcb-backup.timer; then
     echo -e "\033[92m✔ Privia Proxmox Config Backup (PCB) v1.0 service setup completed.\033[0m"
 else
