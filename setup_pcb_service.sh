@@ -22,10 +22,12 @@ echo ""
 read -p "Sender Address: " EMAIL_FROM
 read -p "TO: " EMAIL_TO
 
-openssl genrsa -out pcb-private.pem 2048
-openssl rsa -in pcb-private.pem -outform PEM -pubout -out pcb-public.pem
+# Generate AES key and IV
+AES_KEY=$(openssl rand -base64 32)
+AES_IV=$(openssl rand -base64 16)
 
-ENCRYPTED_PASS=$(echo -n $SMTP_PASS | openssl rsautl -encrypt -pubin -inkey pcb-public.pem | base64)
+# Encrypt the SMTP password using AES
+ENCRYPTED_PASS=$(echo -n $SMTP_PASS | openssl enc -aes-256-cbc -base64 -K $(echo -n $AES_KEY | xxd -p -c 256) -iv $(echo -n $AES_IV | xxd -p -c 256))
 
 HOSTNAME=$(hostname)
 
@@ -40,10 +42,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
 import base64
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
 
 # SMTP Config
 SMTP_SERVER = '$SMTP_SERVER'
@@ -62,21 +63,21 @@ def log_message(message):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.datetime.now()} - {message}\n")
 
-with open('/usr/local/bin/pcb-private.pem', 'rb') as key_file:
-    private_key = serialization.load_pem_private_key(
-        key_file.read(),
-        password=None,
-    )
+def decrypt_password(encrypted_pass, key, iv):
+    encrypted_pass = base64.b64decode(encrypted_pass)
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+    decryptor = cipher.decryptor()
+    decrypted_pass = decryptor.update(encrypted_pass) + decryptor.finalize()
+    return decrypted_pass.decode('utf-8').rstrip('\0')
 
-encrypted_pass = base64.b64decode('$ENCRYPTED_PASS')
-SMTP_PASS = private_key.decrypt(
-    encrypted_pass,
-    padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None
-    )
-).decode('utf-8')
+# AES key and IV (hex encoded)
+AES_KEY = bytes.fromhex('$AES_KEY')
+AES_IV = bytes.fromhex('$AES_IV')
+
+# Encrypted password
+ENCRYPTED_PASS = '$ENCRYPTED_PASS'
+
+SMTP_PASS = decrypt_password(ENCRYPTED_PASS, AES_KEY, AES_IV)
 
 def send_email(subject, body, attachment_path=None):
     msg = MIMEMultipart()
