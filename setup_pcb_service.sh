@@ -22,9 +22,8 @@ echo ""
 read -p "Sender Address: " EMAIL_FROM
 read -p "TO: " EMAIL_TO
 
-# Store the SMTP password in a file securely
-echo $SMTP_PASS > /usr/local/bin/pcb_smtp_pass.txt
-chmod 600 /usr/local/bin/pcb_smtp_pass.txt
+echo $SMTP_PASS > /usr/local/bin/pcb_smtp.bin
+chmod 600 /usr/local/bin/pcb_smtp.bin
 
 HOSTNAME=$(hostname)
 
@@ -57,8 +56,7 @@ def log_message(message):
     with open(LOG_FILE, 'a') as log_file:
         log_file.write(f"{datetime.datetime.now()} - {message}\n")
 
-# Read the SMTP password from the file
-with open('/usr/local/bin/pcb_smtp_pass.txt', 'r') as pass_file:
+with open('/usr/local/bin/pcb_smtp.bin', 'r') as pass_file:
     SMTP_PASS = pass_file.read().strip()
 
 def send_email(subject, body, attachment_path=None):
